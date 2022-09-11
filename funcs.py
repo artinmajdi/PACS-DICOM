@@ -33,17 +33,19 @@ class Connect_To_PACS():
         self.assoc = self.ae.associate(addr=self.addr, port=self.port)
 
 
-    def send_c_find(self, show_results=False):
+    def send_c_find(self, show_results=False, queryRetrieveLevel='STUDY', requestedContext=sop_class.PatientRootQueryRetrieveInformationModelFind):
 
-        self._dataset(queryRetrieveLevel='STUDY')
+        self._dataset(queryRetrieveLevel=queryRetrieveLevel)
 
-        self._associate(requestedContext=sop_class.PatientRootQueryRetrieveInformationModelFind)
+        self._associate(requestedContext=requestedContext)
 
 
         # Send the C-FIND request
         assert self.assoc.is_established, "Association must be established before calling _show_results()"
 
         self.responses = self.assoc.send_c_find(dataset=self.ds, query_model=self.requestedContext)
+
+        self.list_sample_info = list(self.responses)
 
         if show_results: self._show_results()
 
