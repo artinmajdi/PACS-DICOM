@@ -15,7 +15,7 @@ class Connect_To_PACS():
 
     def _dataset(self, queryRetrieveLevel='STUDY'):
 
-        assert queryRetrieveLevel in ['STUDY' 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'], "queryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
+        assert queryRetrieveLevel in ['PATIENT', 'STUDY', 'SERIES', 'IMAGE'], "queryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
 
         self.ds = pydicom.dataset.Dataset()
         self.ds.QueryRetrieveLevel = queryRetrieveLevel
@@ -50,9 +50,13 @@ class Connect_To_PACS():
         if show_results: self._show_results()
 
 
+
+    def send_c_get(self):
+        pass
+
     def _show_results(self, release=False):
 
-        for (status, identifier) in self.responses:
+        for (status, identifier) in self.list_sample_info:
 
             if status: print('C-FIND query status: 0x{0:04X}'.format(status.Status))
             else:      print('Connection timed out, was aborted or received invalid response')
