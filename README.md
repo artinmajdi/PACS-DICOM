@@ -9,7 +9,7 @@
 
 ## Usage
 
-`streamlit run app.py`
+`streamlit run streamlit_app.py`
 
 ## License
 
