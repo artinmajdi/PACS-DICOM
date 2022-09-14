@@ -11,7 +11,7 @@ class App(Connect_To_PACS):
 
     def __init__(self):
 
-        st.title('Retrieving DICOM images from PACS')
+        st.title('Retrieving DICOM Images from PACS')
         st.markdown(' Use the menu at the left to select the settings for data retrieval ')
 
         Connect_To_PACS.__init__(self, port=104, ae_title='AET')
