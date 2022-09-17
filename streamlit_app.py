@@ -1,4 +1,5 @@
 from faulthandler import disable
+from turtle import width, window_width
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -12,77 +13,83 @@ class App(Connect_To_PACS):
     def __init__(self):
 
         st.title('Retrieving DICOM Images from PACS')
-        st.markdown(' Use the menu at the left to select the settings for data retrieval ')
 
-        Connect_To_PACS.__init__(self, port=104, ae_title='AET')
+        self._getPortAEtitle()
+        Connect_To_PACS.__init__(self, addr=self.addr, port=self.port, ae_title=self.ae_title)
 
     def getQueryRetrieveLevel(self):
 
-        st.sidebar.markdown('## Parameters')
-        cols = st.sidebar.columns(2)
-        self.queryRetrieveLevel   = cols[0].radio(label='Select the Query Retrieval Level', options=['STUDY' ,'PATIENT'], horizontal=True , )
-        self.queryRetrieveLevel2 = cols[1].radio(label='', options=['SERIES', 'IMAGE'], horizontal=True , disabled=True)
+        with st.expander('Query/Retrieve Level', expanded=False):
+            cols = st.columns([1,1,1])
+            self.queryRetrieveLevel  = cols[0].selectbox('Select the Query Retrieval Level', ['STUDY' ,'PATIENT', 'SERIES', 'IMAGE'])
 
-    # QueryRetrieveLevel
-    def getRequestedContext(self):
+            if self.queryRetrieveLevel == 'STUDY':
+                self.reqContext = 'StudyRoot' + 'QueryRetrieveInformationModel'
 
-        assert self.queryRetrieveLevel, 'queryRetrieveLevel() must be ran before calling getRequestedContext()'
-
-        if self.queryRetrieveLevel == 'STUDY':
-            reqContext = 'StudyRoot' + 'QueryRetrieveInformationModel'
-
-        elif self.queryRetrieveLevel == 'PATIENT':
-            output = st.sidebar.radio('PatientRoot or PatientStudy', ['Root', 'StudyOnly'], horizontal=True)
-            reqContext = 'Patient' + output + 'QueryRetrieveInformationModel'
-
-        cols = st.sidebar.columns(2)
-        self.reqContextAction   = cols[0].radio('Select the Requested Context', ['Find', 'Get',], horizontal=True)
-        self.reqContextAction2 = cols[1].radio('', ['Move'], horizontal=True, disabled=True)
-        reqContext = reqContext + self.reqContextAction
-        self.requestedContext = eval( f'sop_class.{reqContext}' )
-
-        st.markdown('## SOP Class UID')
-        st.success(f'SOP Class: \n - {reqContext}  \n - {self.requestedContext}')
-
-        if self.reqContextAction =='Find':
-            self.do_c_find()
+            elif self.queryRetrieveLevel == 'PATIENT':
+                output = cols[1].radio('PatientRoot or PatientStudy', ['Root', 'StudyOnly'])
+                self.reqContext = 'Patient' + output + 'QueryRetrieveInformationModel'
 
 
+            if self.queryRetrieveLevel in [  'STUDY' , 'PATIENT']:
+
+                self.reqContextAction   = cols[2].radio('Select the Requested Context', ['Find', 'Get' , 'Move'])
+                self.reqContext = self.reqContext + self.reqContextAction
+                self.requestedContext = eval( f'sop_class.{self.reqContext}' )
+
+                cols = st.columns([1,3,1])
+                cols[0].write( '#### <span style="color:green"> SOP Class:  </span>', unsafe_allow_html=True)
+                cols[1].success(f'- {self.reqContext}  \n - {self.requestedContext}')
+
+                if self.reqContextAction =='Find':
+                    self.do_c_find()
+
+            elif self.queryRetrieveLevel in [ 'SERIES', 'IMAGE']:
+                st.warning('This option is not supported at this time')
 
     def do_c_find(self):
 
-        st.markdown('## Founded subjects')
-        self.send_c_find(show_results=False, queryRetrieveLevel=sidebar.queryRetrieveLevel, requestedContext=sidebar.requestedContext)
-        st.markdown( f'Number of retrieved subjects: {len(self.list_sample_info)}' )
+        self.send_c_find(show_results=False, queryRetrieveLevel=self.queryRetrieveLevel, requestedContext=self.requestedContext)
 
-        cols = st.columns(2)
+        st.info( f'Number of retrieved subjects: {len(self.list_sample_info)}' )
+
+        cols = st.columns([2,2,1])
         index = cols[0].slider("Select the subject index to display it's status", min_value=0, max_value=len(self.list_sample_info)-1, value=0, step=1, format=None, key=None, help=None, on_change=None, args=None, kwargs=None)
-        cols[1].markdown(self.list_sample_info[index][0])
+        cols[1].info(self.list_sample_info[index][0])
 
     def get_download_info(self):
 
-        self.searchType = st.sidebar.radio('Search type', ['AccessionNumber', 'PatientID'], horizontal=True)
+        with st.expander('Download Settings', expanded=False):
+            cols = st.columns([1,3])
+            self.searchType = cols[0].radio('Search type', ['AccessionNumber', 'PatientID'])
 
-        file = st.sidebar.file_uploader('CSV file containing subjects identifier information ',  type='csv')
-        if file is not None:
-            self.df = pd.read_csv(file)
-            st.expander('CSV file containing subjects identifier information').write(self.df)
+            file = cols[1].file_uploader('CSV file containing subjects identifier information ',  type='csv')
 
-        self.output_dir = st.sidebar.text_input('Output Directory' ,   value='/Users/personal-macbook/Documents/projects/D7.PACS/code/Data7.PACS_DICOM')
+            cols = st.columns([1,2])
+            self.timelag = cols[0].number_input('Timelag between each download in seconds', min_value=0, max_value=100, value=60, step=1, format=None, key=None, help=None, on_change=None, args=None, kwargs=None)
+            self.output_dir = cols[1].text_input('Output Directory' ,   value='/Users/personal-macbook/Documents/projects/D7.PACS/code/Data7.PACS_DICOM')
 
+            if file is not None:
+                self.df = pd.read_csv(file)
+                st.write(self.df)
 
-        self.timelag = st.sidebar.number_input('Enter the timelag between each download in seconds', min_value=0, max_value=100, value=60, step=1, format=None, key=None, help=None, on_change=None, args=None, kwargs=None)
-
-        cols = st.sidebar.columns(2)
-        self.startButton =  cols[0].button('Start Download')
+        disabled = False if self.queryRetrieveLevel in [  'STUDY' , 'PATIENT'] else True
+        self.startButton =  st.button('Start Download', disabled=disabled)
 
         if self.startButton:
             i,n = 1,100
             cols[1].write( f'Download Progress: {i}/{n}' )
 
+    def _getPortAEtitle(self):
+
+        with st.expander('PACS Settings', expanded=False):
+            cols = st.columns([1,1, 3])
+            self.port = int(cols[0].number_input('Enter the port number', value=104))
+            self.ae_title = cols[1].text_input('Enter the AE Title', value='AET', type='default')
+            self.addr = cols[2].text_input('Enter the PACS address', value='www.dicomserver.co.uk', type='default')
+
 sidebar = App()
 sidebar.getQueryRetrieveLevel()
-sidebar.getRequestedContext()
 sidebar.get_download_info()
 
 
