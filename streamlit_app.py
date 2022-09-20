@@ -74,7 +74,7 @@ class App(Connect_To_PACS):
 
             for idx, value in enumerate(self.df.values):
 
-                # p = Connect_To_PACS.getscu(self, output_directory=self.output_dir, QueryRetrieveLevel=self.queryRetrieveLevel , subject_ID_element=self.subject_ID_element, subject_ID_value=value[0])
+                p = Connect_To_PACS.getscu(self, output_directory=self.output_dir, QueryRetrieveLevel=self.queryRetrieveLevel , subject_ID_element=self.subject_ID_element, subject_ID_value=value[0])
                 time.sleep(self.timelag)
 
                 st.markdown( f'**Download Progress:** {idx+1}/{self.df.shape[0]}     **{self.subject_ID_element}** = {value[0]}' )
@@ -93,9 +93,9 @@ class App(Connect_To_PACS):
 
         with st.expander('PACS Settings', expanded=False):
             cols = st.columns([1,1, 3])
-            self.port = int(cols[0].number_input('Enter the port number', value=104))
-            self.ae_title = cols[1].text_input('Enter the AE Title', value='AET', type='default')
-            self.addr = cols[2].text_input('Enter the PACS address', value='www.dicomserver.co.uk', type='default')
+            self.port      =  int(cols[0].number_input('Enter the port number', value=11112))
+            self.ae_title =  cols[1].text_input('Enter the AE Title', value='AET', type='default')
+            self.addr      =  cols[2].text_input('Enter the PACS address', value='www.dicomserver.co.uk', type='default')
 
 sidebar = App()
 sidebar.getQueryRetrieveLevel()
