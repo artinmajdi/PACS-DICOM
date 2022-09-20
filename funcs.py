@@ -1,6 +1,7 @@
 import pydicom
 from pynetdicom import AE, sop_class
 from pydicom import uid
+import subprocess
 
 class Connect_To_PACS():
 
@@ -10,42 +11,68 @@ class Connect_To_PACS():
         self.port = port # 104 # 11112
         self.ae_title = ae_title
 
-    def _dataset(self, queryRetrieveLevel='STUDY'):
+    def dataset(self, queryRetrieveLevel='STUDY', subject_ID={ 'PatientID':None, 'StudyInstanceUID':None, 'SeriesInstanceUID':None}):
 
         assert queryRetrieveLevel in ['PATIENT', 'STUDY', 'SERIES', 'IMAGE'], "queryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
 
         self.ds = pydicom.dataset.Dataset()
         self.ds.QueryRetrieveLevel = queryRetrieveLevel
 
-    def _associate(self, requestedContext=sop_class.PatientRootQueryRetrieveInformationModelFind):
+        # Unique key for PATIENT level
+        if queryRetrieveLevel == 'PATIENT':
+            self.ds.PatientID = subject_ID['PatientID']
+
+        # Unique key for STUDY level
+        elif queryRetrieveLevel == 'STUDY':
+            self.ds.StudyInstanceUID = subject_ID['StudyInstanceUID']
+
+        # Unique key for SERIES level
+        elif queryRetrieveLevel == 'SERIES':
+            self.ds.SeriesInstanceUID = subject_ID['SeriesInstanceUID']
+
+    def associate(self, requestedContext=sop_class.PatientRootQueryRetrieveInformationModelFind):
 
         self.requestedContext = requestedContext
-
         # Associate with a peer AE at IP
         self.ae = AE(ae_title=self.ae_title)
+
+        # if self.requestedContext is None:
+        #     self.requestedContext = sop_class.RawDataStorage
 
         self.ae.add_requested_context(self.requestedContext)
 
         self.assoc = self.ae.associate(addr=self.addr, port=self.port)
 
-    def send_c_find(self, show_results=False, queryRetrieveLevel='STUDY', requestedContext=sop_class.PatientRootQueryRetrieveInformationModelFind):
-
-        self._dataset(queryRetrieveLevel=queryRetrieveLevel)
-
-        self._associate(requestedContext=requestedContext)
-
+    def send_c_find(self, show_results=False, release=True,):
 
         # Send the C-FIND request
         assert self.assoc.is_established, "Association must be established before calling _show_results()"
-
         self.responses = self.assoc.send_c_find(dataset=self.ds, query_model=self.requestedContext)
-
         self.list_sample_info = list(self.responses)
 
-        if show_results: self._show_results()
+        if show_results: self._show_results(release=release)
 
-    def send_c_get(self):
-        pass
+    def send_c_get(self, priority=0):
+
+        queryRetrieveLevel = 'PATIENT'
+        subject_ID={ 'PatientID':'PAT009', 'StudyInstanceUID':None, 'SeriesInstanceUID':None}
+        self.dataset(queryRetrieveLevel=queryRetrieveLevel, subject_ID=subject_ID)
+        self.associate(requestedContext=sop_class.PatientStudyOnlyQueryRetrieveInformationModelGet)
+
+        # Send the C-GET request
+        assert self.assoc.is_established, "Association must be established before calling _show_results()"
+        self.responses = self.assoc.send_c_get(dataset=self.ds, query_model=self.requestedContext, priority=priority)
+
+
+    def getscu(self, output_directory='', QueryRetrieveLevel='PATIENT', subject_ID_element='PATIENTID', subject_ID_value='PAT009',):
+
+        assert QueryRetrieveLevel in ['PATIENT', 'STUDY', 'SERIES', 'IMAGE'], "QueryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
+
+        command = f'python -m pynetdicom getscu --output-directory {output_directory} {self.addr} {self.port} -k QueryRetrieveLevel={QueryRetrieveLevel} -k {subject_ID_element}={subject_ID_value}'
+        print(command)
+        p = subprocess.Popen('exec ' + command, stdout=subprocess.PIPE, shell=True)
+
+        return p
 
     def _show_results(self, release=False):
 

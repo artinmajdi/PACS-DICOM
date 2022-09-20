@@ -5,80 +5,89 @@ import pandas as pd
 import numpy as np
 from funcs import Connect_To_PACS
 from pynetdicom import AE, sop_class
-# from pydicom import uid
-
+import time
+from tqdm import tqdm
 
 class App(Connect_To_PACS):
 
     def __init__(self):
 
         st.title('Retrieving DICOM Images from PACS')
+        self.reqContextAction = 'Get'
 
         self._getPortAEtitle()
         Connect_To_PACS.__init__(self, addr=self.addr, port=self.port, ae_title=self.ae_title)
 
+    def _get_patient_level_info(self):
+
+        # Creating 3 columns
+        cols = st.columns([1,1,1])
+
+        # PATIENT level
+        self.queryRetrieveLevel  = cols[0].selectbox('Select the Query Retrieval Level', ['STUDY' ,'PATIENT', 'SERIES', 'IMAGE'])
+
+        # Unique key for PATIENT level
+        if self.queryRetrieveLevel == 'STUDY':         self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name', ['AccessionNumber/StudyInstanceUID' , 'Other'])
+        elif self.queryRetrieveLevel == 'PATIENT':   self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name', ['PatientID', 'PatientName', 'Other'])
+        elif self.queryRetrieveLevel == 'SERIES':     self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name', ['SeriesInstanceUID', 'Other'])
+        elif self.queryRetrieveLevel == 'IMAGE':      self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name', ['SOPInstanceUID', 'Other'])
+
+        # Element ID/Name
+        if self.subject_ID_element == 'Other':    cols[1].text_input('Enter the Element ID/Name', value='(0008,0050)' , type='default')
+
+        # Find/Get
+        self.reqContextAction  = cols[2].radio('Select the Requested Context', ['Find', 'Get' ,])
+
+    def _get_CSV_File(self):
+        # Create 2 columns
+        cols= st.columns([1,1])
+
+        # Get a CSV containing all the subjects identifier information
+        file = cols[0].file_uploader('CSV file containing subjects identifier information ',  type='csv')
+
+        # Loading the CSV file
+        if file is not None:
+            self.df = pd.read_csv(file)
+            st.write(self.df)
+
+        return cols
+
+    def  _get_download_info(self, cols=None):
+        if self.reqContextAction == 'Get' and cols is not None:
+            self.timelag = cols[1].number_input('Timelag between each download in seconds', min_value=0, max_value=100, value=60, step=1, format=None, key=None, help=None, on_change=None, args=None, kwargs=None,)
+            self.output_dir = cols[1].text_input('Output Directory' ,   value='/Users/personal-macbook/Documents/projects/D7.PACS/code/Data7.PACS_DICOM')
+
     def getQueryRetrieveLevel(self):
 
         with st.expander('Query/Retrieve Level', expanded=False):
-            cols = st.columns([1,1,1])
-            self.queryRetrieveLevel  = cols[0].selectbox('Select the Query Retrieval Level', ['STUDY' ,'PATIENT', 'SERIES', 'IMAGE'])
 
-            if self.queryRetrieveLevel == 'STUDY':
-                self.reqContext = 'StudyRoot' + 'QueryRetrieveInformationModel'
+            self._get_patient_level_info()
 
-            elif self.queryRetrieveLevel == 'PATIENT':
-                output = cols[1].radio('PatientRoot or PatientStudy', ['Root', 'StudyOnly'])
-                self.reqContext = 'Patient' + output + 'QueryRetrieveInformationModel'
+            cols = self._get_CSV_File()
 
+            self._get_download_info(cols=cols)
 
-            if self.queryRetrieveLevel in [  'STUDY' , 'PATIENT']:
+    def start_download(self):
+        self.startButton =  st.button('Start Download',)
 
-                self.reqContextAction   = cols[2].radio('Select the Requested Context', ['Find', 'Get' , 'Move'])
-                self.reqContext = self.reqContext + self.reqContextAction
-                self.requestedContext = eval( f'sop_class.{self.reqContext}' )
+        if self.startButton:
 
-                cols = st.columns([1,3,1])
-                cols[0].write( '#### <span style="color:green"> SOP Class:  </span>', unsafe_allow_html=True)
-                cols[1].success(f'- {self.reqContext}  \n - {self.requestedContext}')
+            for idx, value in enumerate(self.df.values):
 
-                if self.reqContextAction =='Find':
-                    self.do_c_find()
+                # p = Connect_To_PACS.getscu(self, output_directory=self.output_dir, QueryRetrieveLevel=self.queryRetrieveLevel , subject_ID_element=self.subject_ID_element, subject_ID_value=value[0])
+                time.sleep(self.timelag)
 
-            elif self.queryRetrieveLevel in [ 'SERIES', 'IMAGE']:
-                st.warning('This option is not supported at this time')
+                st.markdown( f'**Download Progress:** {idx+1}/{self.df.shape[0]}     **{self.subject_ID_element}** = {value[0]}' )
 
     def do_c_find(self):
 
-        self.send_c_find(show_results=False, queryRetrieveLevel=self.queryRetrieveLevel, requestedContext=self.requestedContext)
+        self.send_c_find(show_results=False,)
 
         st.info( f'Number of retrieved subjects: {len(self.list_sample_info)}' )
 
         cols = st.columns([2,2,1])
         index = cols[0].slider("Select the subject index to display it's status", min_value=0, max_value=len(self.list_sample_info)-1, value=0, step=1, format=None, key=None, help=None, on_change=None, args=None, kwargs=None)
         cols[1].info(self.list_sample_info[index][0])
-
-    def get_download_info(self):
-
-        with st.expander('Download Settings', expanded=False):
-            cols = st.columns([1,3])
-            self.searchType = cols[0].radio('Search type', ['AccessionNumber', 'PatientID'])
-
-            file = cols[1].file_uploader('CSV file containing subjects identifier information ',  type='csv')
-
-            cols = st.columns([1,2])
-            self.timelag = cols[0].number_input('Timelag between each download in seconds', min_value=0, max_value=100, value=60, step=1, format=None, key=None, help=None, on_change=None, args=None, kwargs=None)
-            self.output_dir = cols[1].text_input('Output Directory' ,   value='/Users/personal-macbook/Documents/projects/D7.PACS/code/Data7.PACS_DICOM')
-
-            if file is not None:
-                self.df = pd.read_csv(file)
-                st.write(self.df)
-
-        disabled = False if self.queryRetrieveLevel in [  'STUDY' , 'PATIENT'] else True
-        self.startButton =  st.button('Start Download', disabled=disabled)
-
-        if self.startButton:
-            i,n = 1,100
-            cols[1].write( f'Download Progress: {i}/{n}' )
 
     def _getPortAEtitle(self):
 
@@ -90,7 +99,7 @@ class App(Connect_To_PACS):
 
 sidebar = App()
 sidebar.getQueryRetrieveLevel()
-sidebar.get_download_info()
+sidebar.start_download()
 
 
 
