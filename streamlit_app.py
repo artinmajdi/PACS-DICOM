@@ -160,10 +160,10 @@ class App(Connect_To_PACS):
 
             for idx, value in enumerate(self.df.values):
 
+                st.markdown( f'**Download Progress:** {idx+1}/{self.df.shape[0]}     **{self.subject_ID_element}** = {value[0]}' )
                 p = Connect_To_PACS.getscu(self, output_directory=self.output_dir, QueryRetrieveLevel=self.queryRetrieveLevel , subject_ID_element=self.subject_ID_element, subject_ID_value=value[0])
                 time.sleep(self.timelag)
 
-                st.markdown( f'**Download Progress:** {idx+1}/{self.df.shape[0]}     **{self.subject_ID_element}** = {value[0]}' )
 
     def do_c_find(self):
 
