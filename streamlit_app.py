@@ -1,5 +1,3 @@
-from faulthandler import disable
-from turtle import width, window_width
 import streamlit as st
 import pandas as pd
 # from funcs import Connect_To_PACS
