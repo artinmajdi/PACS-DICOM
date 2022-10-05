@@ -1,12 +1,14 @@
+from genericpath import isfile
 import streamlit as st
 import pandas as pd
 # from funcs import Connect_To_PACS
-from pynetdicom import AE, sop_class
+from pynetdicom import AE, sop_class, debug_logger
 import time
 from tqdm import tqdm
 import pydicom
 from pynetdicom import AE, sop_class
 import subprocess
+import os
 
 class Connect_To_PACS():
 
@@ -15,6 +17,30 @@ class Connect_To_PACS():
         self.addr = addr
         self.port = port # 104 # 11112
         self.ae_title = ae_title
+
+    def verify(self):
+
+        ae = AE(ae_title=self.ae_title)
+
+        ae.add_requested_context( sop_class.Verification )
+
+        # Adding the Verification SOP Class to the list of SOP Classes that the AE will support.
+        assoc = ae.associate(self.addr, self.port)
+
+        if assoc.is_established:
+            # Use the C-ECHO service to send the request
+            status = assoc.send_c_echo()
+            if status:
+                # If the status is 'Success' then the verification succeeded
+                st.write('Verification successful')
+            else:
+                st.write('Connection timed out, was aborted or received invalid response')
+
+            # Release the association
+            assoc.release()
+        else:
+            st.write('Association rejected, aborted or never connected')
+
 
     def dataset(self, queryRetrieveLevel='STUDY', subject_ID={ 'PatientID':None, 'StudyInstanceUID':None, 'SeriesInstanceUID':None}):
 
@@ -68,12 +94,13 @@ class Connect_To_PACS():
         assert self.assoc.is_established, "Association must be established before calling _show_results()"
         self.responses = self.assoc.send_c_get(dataset=self.ds, query_model=self.requestedContext, priority=priority)
 
-
     def getscu(self, output_directory='', QueryRetrieveLevel='PATIENT', subject_ID_element='PATIENTID', subject_ID_value='PAT009',):
 
         assert QueryRetrieveLevel in ['PATIENT', 'STUDY', 'SERIES', 'IMAGE'], "QueryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
 
-        command = f'python -m pynetdicom getscu --output-directory {output_directory} {self.addr} {self.port} -k QueryRetrieveLevel={QueryRetrieveLevel} -k {subject_ID_element}={subject_ID_value}'
+        os.makedirs( output_directory , exist_ok=True )
+
+        command = f'nohup python -m pynetdicom getscu --output-directory {output_directory} {self.addr} {self.port} -k QueryRetrieveLevel={QueryRetrieveLevel} -k {subject_ID_element}={subject_ID_value} | tee -a {output_directory}/{subject_ID_value}.log'
         print(command)
         p = subprocess.Popen('exec ' + command, stdout=subprocess.PIPE, shell=True)
 
@@ -94,9 +121,13 @@ class Connect_To_PACS():
         self.assoc.release()
 
 
-class App(Connect_To_PACS):
+class Streamlit_App(Connect_To_PACS):
 
     def __init__(self):
+
+        self.output_dir   = None
+        self.user_inputs = None
+        self.df_user_csv = None
 
         st.title('Retrieving DICOM Images from PACS')
         self.reqContextAction = 'Get'
@@ -125,6 +156,7 @@ class App(Connect_To_PACS):
         self.reqContextAction  = cols[2].radio('Select the Requested Context', ['Find', 'Get' ,])
 
     def _get_CSV_File(self):
+
         # Create 2 columns
         cols= st.columns([1,1])
 
@@ -133,15 +165,22 @@ class App(Connect_To_PACS):
 
         # Loading the CSV file
         if file is not None:
-            self.df = pd.read_csv(file)
-            st.write(self.df)
+            self.df_user_csv = pd.read_csv(file)
+            st.write(self.df_user_csv)
 
         return cols
+
+    def extract_subject_path( self ):
+        user_inputs = {}
+        for subject_ID_value in self.df_user_csv[ self.df_user_csv.columns[0] ]:
+            user_inputs[subject_ID_value] = f'{self.output_dir}/{subject_ID_value}'
+
+        return user_inputs
 
     def  _get_download_info(self, cols=None):
         if self.reqContextAction == 'Get' and cols is not None:
             self.timelag = cols[1].number_input('Timelag between each download in seconds', min_value=0, max_value=100, value=60, step=1, format=None, key=None, help=None, on_change=None, args=None, kwargs=None,)
-            self.output_dir = cols[1].text_input('Output Directory' ,   value='/Users/personal-macbook/Documents/projects/D7.PACS/code/Data7.PACS_DICOM')
+            self.output_dir = os.path.abspath(  cols[1].text_input('Output Directory' ,   value='/Users/personal-macbook/Documents/projects/D7.PACS/code/downloaded_images', type='default' ,)  )
 
     def getQueryRetrieveLevel(self):
 
@@ -158,12 +197,37 @@ class App(Connect_To_PACS):
 
         if self.startButton:
 
-            for idx, value in enumerate(self.df.values):
+            user_inputs = self.extract_subject_path()
 
-                st.markdown( f'**Download Progress:** {idx+1}/{self.df.shape[0]}     **{self.subject_ID_element}** = {value[0]}' )
-                p = Connect_To_PACS.getscu(self, output_directory=self.output_dir, QueryRetrieveLevel=self.queryRetrieveLevel , subject_ID_element=self.subject_ID_element, subject_ID_value=value[0])
+            for idx ,  (subject_ID_value , output_directory)  in enumerate( user_inputs.items() ):
+
+                st.markdown( f'**Download Progress:** {idx+1}/{len(user_inputs)}     **{self.subject_ID_element}** = {subject_ID_value}' )
+
+                # output_directory = self.output_dir + '/' + subject_ID_value
+                p = self.getscu(output_directory=output_directory, QueryRetrieveLevel=self.queryRetrieveLevel , subject_ID_element=self.subject_ID_element, subject_ID_value=subject_ID_value)
+
+                # User specified timelag between each subject
                 time.sleep(self.timelag)
 
+    def update_log(self):
+
+        btnUpdateLog = st.sidebar.button('Update Log')
+
+        # Activates everytime the Update Log button is pressed
+        if btnUpdateLog :
+            user_inputs = self.extract_subject_path()
+
+            for (subject_ID_value , output_directory)  in user_inputs.items():
+
+                log_dir=f'{output_directory}/{subject_ID_value}.log'
+                st.sidebar.write(subject_ID_value)
+
+                if os.path.isfile(log_dir):
+                    df = Streamlit_App.convert_log_to_csv( log_dir=log_dir)
+                    st.sidebar.write(df)
+
+                else:
+                    st.sidebar.write('Log not found')
 
     def do_c_find(self):
 
@@ -183,10 +247,50 @@ class App(Connect_To_PACS):
             self.ae_title =  cols[1].text_input('Enter the AE Title', value='AET', type='default')
             self.addr      =  cols[2].text_input('Enter the PACS address', value='www.dicomserver.co.uk', type='default')
 
-sidebar = App()
-sidebar.getQueryRetrieveLevel()
-sidebar.start_download()
+            self.verify()
 
+    @staticmethod
+    def convert_log_to_csv( log_dir: str):
+
+        # Reading the log file
+        with open(log_dir , 'r') as file:
+            log_file = file.read().splitlines()
+
+        # Getting the indices for each downloaded file
+        last_line_index = [i for i, s in enumerate(log_file) if 'Releasing Association' in s]
+        index = [i for i, s in enumerate(log_file[:last_line_index[-1]]) if 'Storing DICOM file:' in s]
+
+        # Organizing the log file into columns
+        df = pd.DataFrame()
+        for ix in tqdm(index):
+            dct = {}
+            dct['case_name'] = log_file[ix].split('Storing DICOM file: ')[1]
+
+            if 'W: DICOM file already exists, overwriting' in log_file[ix+1]:
+                ix += 1
+
+            dct['SCP_Response']  = log_file[ix+1].split('SCP Response:')[1]
+
+            for name in [ 'Remaining' ,  'Completed' ,  'Failed' ]:
+                dct[name] = log_file[ix+2].split(f'{name}:')[1].split(',')[0]
+
+            df_temp = pd.DataFrame.from_dict(dct, orient='index').T
+            df = pd.concat( (df , df_temp) )
+
+        df.reset_index(drop=True, inplace=True)
+
+        # Saving the log file
+        df.to_csv(log_dir.replace('.log', '.csv') , index=False)
+
+        return df
+
+
+if __name__ == '__main__':
+
+    streamlit_app = Streamlit_App()
+    streamlit_app.getQueryRetrieveLevel()
+    streamlit_app.start_download()
+    streamlit_app.update_log()
 
 
 # # Accession or PatientID
