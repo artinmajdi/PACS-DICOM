@@ -1,0 +1,11 @@
+I: Requesting Association
+I: Association Accepted
+I: Sending Get Request: MsgID 1
+I: 
+I: # Request Identifier
+I: (0008,0052) CS [PATIENT]                                # 1 QueryRetrieveLevel
+I: (0010,0020) LO [PAT003]                                 # 1 PatientID
+I: 
+I: Get SCP Result: 0x0000 (Success)
+I: Sub-Operations Remaining: 0, Completed: 0, Failed: 0, Warning: 0
+I: Releasing Association
