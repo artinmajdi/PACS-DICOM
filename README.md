@@ -1,7 +1,7 @@
 # Connecting to a PACS server and downloading DICOM files
 
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://artinmajdi-data7-pacs-dicom-streamlit-app-iyjinz.streamlitapp.com/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://artinmajdi-data7-pacs-dicom-app-id280r.streamlitapp.com/)
 
 ## Installation
 
@@ -9,7 +9,7 @@
 
 ## Usage
 
-`streamlit run streamlit_app.py`
+`streamlit run app.py`
 
 ## License
 
