@@ -2,3 +2,4 @@ __pycache__/
 .vscode/
 SC.2.25*
 .ipynb_checkpoints/
+.idea/
