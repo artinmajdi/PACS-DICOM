@@ -5,3 +5,5 @@ pydicom
 streamlit
 
 tqdm
+
+python-dotenv
