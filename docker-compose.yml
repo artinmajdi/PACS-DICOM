@@ -1,0 +1,10 @@
+version: '3.4'
+
+services:
+  code:
+    image: code
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - /Users/personal-macbook/Documents/projects/D7.PACS/code:/code:ro

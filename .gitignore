@@ -1,5 +1,5 @@
 __pycache__/
+.mypy_cache/
 .vscode/
-SC.2.25*
 .ipynb_checkpoints/
 .idea/

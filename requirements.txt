@@ -1,6 +1,6 @@
-pandas~=1.4.2
-pynetdicom~=2.0.2
-pydicom~=2.3.0
-streamlit~=1.13.0
-tqdm~=4.64
-python-dotenv~=0.21.0
+pandas
+pynetdicom
+pydicom
+streamlit
+tqdm
+python-dotenv

@@ -10,7 +10,25 @@
             "request": "launch",
             "module": "streamlit",
             "justMyCode": true,
-            "args": ["run", "${file}"],
+            "args": [
+                "run",
+                "${file}"
+            ]
+        },
+        {
+            "name": "Docker: Python - General",
+            "type": "docker",
+            "request": "launch",
+            "preLaunchTask": "docker-run: debug",
+            "python": {
+                "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder}",
+                        "remoteRoot": "/app"
+                    }
+                ],
+                "projectType": "general"
+            }
         }
     ]
 }
