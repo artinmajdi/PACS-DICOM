@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
 WORKDIR /code
-COPY .s /code
+COPY . /code
 
 EXPOSE  11112
 
