@@ -8,6 +8,7 @@
 ## Installation
 
 `pip install -r requirements.txt`
+`docker pull artinmajdi/connect_to_pacs`
 
 ## Usage
 
