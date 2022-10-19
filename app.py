@@ -1,14 +1,8 @@
-# %reload_ext autoreload
-# %reload_ext dotenv
-
-import streamlit as st
 import pandas as pd
 import time
 import os
-from funcs import convert_log_to_csv, ConnectToPACS
-
-# %reload_ext funcs
-# %dotenv .env
+import streamlit as st
+from utils.funcs import convert_log_to_csv, ConnectToPACS
 
 # @st.cache
 class StreamlitApp(ConnectToPACS):

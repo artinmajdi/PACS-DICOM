@@ -4,12 +4,11 @@
 import dotenv
 import argparse
 import pandas as pd
-
 import os
 from collections import namedtuple
 import time
 from tqdm import tqdm
-from funcs import convert_log_to_csv, ConnectToPACS
+from utils.funcs import convert_log_to_csv, ConnectToPACS
 
 # %reload_ext funcs
 # %dotenv .env
@@ -80,8 +79,8 @@ class DownloadFromPACS(ConnectToPACS):
             log_dir = f'{output_directory}/{subject_ID_value}.log'
 
             if os.path.isfile(log_dir):
-                df = convert_log_to_csv(log_dir=log_dir)
-                df.to_csv(log_dir.replace('log', 'csv'), index=False)
+                convert_log_to_csv(log_dir=log_dir)
+
 
     @staticmethod
     def load_csv_file(csv_dir):

@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
 WORKDIR /code
-COPY . /code
+# COPY . /code
 
 EXPOSE  11112
 
@@ -21,5 +21,13 @@ EXPOSE  11112
 RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /code
 USER appuser
 
-# During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-# CMD ["python", "download_from_pacs.py"]
+# ENTRYPOINT [  "--output_dir" , "--csv_dir" , "--env"]
+ARG output_dir=/code/data
+ARG csv_dir=/code/other/test.csv
+ARG env=/code/config.env
+
+# ENTRYPOINT [ --output_dir ,, ${output_dir} , --csv_dir , ${csv_dir} , --env , ${env} ]
+
+CMD [bash]
+# [python,  download_from_pacs.py]
+# --output_dir $output_dir --csv_dir $csv_dir --env $env

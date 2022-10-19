@@ -1,10 +1,23 @@
 version: '3.4'
 
 services:
-  code:
-    image: code
+  connect_to_pacs:
+
+    image: connect_to_pacs:latest
+
+    container_name: connect_to_pacs
+
+    environment:
+      - output_dir=$output_dir
+      - csv_dir=$csv_dir
+      - env=$env
+
     build:
       context: .
       dockerfile: ./Dockerfile
+      args:
+        - --output_dir=/code/data
+        - --csv_dir=/code/other/test.csv
+        - --env=/code/config.env
     volumes:
-      - /Users/personal-macbook/Documents/projects/D7.PACS/code:/code:ro
+      - ./code:/code

@@ -9,7 +9,28 @@
 
 `pip install -r requirements.txt`
 
-`docker pull artinmajdi/connect_to_pacs`
+
+
+### Building the docker container
+
+1. Building the image using Dockerfile
+```bash
+docker build . -t artinmajdi/connect_to_pacs
+```
+
+2. Pulling from docker hub
+```bash
+docker pull artinmajdi/connect_to_pacs
+```
+### Run the container
+```bash
+docker run --rm -i -v ~/Documents/projects/D7.PACS/code:/code artinmajdi/connect_to_pacs:latest python download_from_pacs.py --output_dir /code/data --csv_dir /code/other/test.csv --env /code/config.env
+```
+
+docker build --build-arg some_variable_name=a_value
+docker run -e "env_var_name=another_value" alpine env
+
+ docker build . -t artinmajdi/connect_to_pacs --build-arg output_dir=/data --build-arg csv_dir=/code/other/test.csv --build-arg env=/code/config.env
 
 ## Usage
 
