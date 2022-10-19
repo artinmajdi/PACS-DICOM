@@ -1,6 +1,3 @@
-# %reload_ext autoreload
-# %reload_ext dotenv
-
 import dotenv
 import argparse
 import pandas as pd
@@ -10,11 +7,8 @@ import time
 from tqdm import tqdm
 from utils.funcs import convert_log_to_csv, ConnectToPACS
 
-# %reload_ext funcs
-# %dotenv .env
-
 parser = argparse.ArgumentParser(description='DICOM Server')
-parser.add_argument('--output_dir', type=str, default='data', help='Path to save the downloaded files')
+parser.add_argument('--output_dir', type=str, default='../data', help='Path to save the downloaded files')
 parser.add_argument('--csv_dir', type=str, default='other/test.csv', help='Path to csv file of cases')
 parser.add_argument('--env', type=str, default='config.env', help='Path to .env file')
 args = parser.parse_args()
@@ -44,10 +38,8 @@ class DownloadFromPACS(ConnectToPACS):
     def get_env_variables(self):
 
         config = dotenv.dotenv_values(args.env)
-        print(config)
 
         self.config = namedtuple('Config', config.keys())(*config.values())
-        print('-----' , self.config)
         self.addr = self.config.Server
         self.port = int(self.config.Port)
         self.ae_title = self.config.AE_TITLE
@@ -80,7 +72,6 @@ class DownloadFromPACS(ConnectToPACS):
 
             if os.path.isfile(log_dir):
                 convert_log_to_csv(log_dir=log_dir)
-
 
     @staticmethod
     def load_csv_file(csv_dir):

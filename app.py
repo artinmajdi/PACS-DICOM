@@ -4,6 +4,7 @@ import os
 import streamlit as st
 from utils.funcs import convert_log_to_csv, ConnectToPACS
 
+
 # @st.cache
 class StreamlitApp(ConnectToPACS):
 
@@ -30,20 +31,24 @@ class StreamlitApp(ConnectToPACS):
         cols = st.columns([1, 1, 1])
 
         # PATIENT level
-        self.queryRetrieveLevel = cols[0].selectbox('Select the Query Retrieval Level',  ['STUDY', 'PATIENT', 'SERIES', 'IMAGE'], index=1)
+        self.queryRetrieveLevel = cols[0].selectbox('Select the Query Retrieval Level',
+                                                    ['STUDY', 'PATIENT', 'SERIES', 'IMAGE'], index=1)
 
         # Unique key for PATIENT level
         if self.queryRetrieveLevel == 'STUDY':
-            self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name',  ['AccessionNumber/StudyInstanceUID', 'Other'])
+            self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name',
+                                                    ['AccessionNumber/StudyInstanceUID', 'Other'])
 
         elif self.queryRetrieveLevel == 'PATIENT':
-            self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name', ['PatientID', 'PatientName', 'Other'])
+            self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name',
+                                                    ['PatientID', 'PatientName', 'Other'])
 
         elif self.queryRetrieveLevel == 'SERIES':
-            self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name',  ['SeriesInstanceUID', 'Other'])
+            self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name',
+                                                    ['SeriesInstanceUID', 'Other'])
 
         elif self.queryRetrieveLevel == 'IMAGE':
-            self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name',  ['SOPInstanceUID', 'Other'])
+            self.subject_ID_element = cols[1].radio('Subject Identifier Element  ID/Name', ['SOPInstanceUID', 'Other'])
 
         # Element ID/Name
         if self.subject_ID_element == 'Other':
@@ -90,8 +95,11 @@ class StreamlitApp(ConnectToPACS):
         The function takes the time lag between each download and the output directory to save the downloaded files.
         """
         if self.reqContextAction == 'Get' and cols is not None:
-            self.timelag = cols[1].number_input('Timelag between each download in seconds', min_value=0, max_value=200, value=30, step=1)
-            self.output_dir = os.path.abspath(cols[1].text_input('Output Directory',  value='/Users/personal-macbook/Documents/projects/D7.PACS/code/data',    type='default'))
+            self.timelag = cols[1].number_input('Timelag between each download in seconds', min_value=0, max_value=200,
+                                                value=30, step=1)
+            self.output_dir = os.path.abspath(cols[1].text_input('Output Directory',
+                                                                 value='/Users/personal-macbook/Documents/projects/D7.PACS/code/data',
+                                                                 type='default'))
 
     def get_query_retrieve_level(self):
         """
@@ -117,7 +125,8 @@ class StreamlitApp(ConnectToPACS):
             user_inputs = self.extract_subject_path()
 
             for idx, (subject_ID_value, output_directory) in enumerate(user_inputs.items()):
-                st.markdown( f'**Download Progress:** {idx + 1}/{len(user_inputs)}     **{self.subject_ID_element}** = {subject_ID_value}')
+                st.markdown(
+                    f'**Download Progress:** {idx + 1}/{len(user_inputs)}     **{self.subject_ID_element}** = {subject_ID_value}')
 
                 if os.path.exists(output_directory):
                     st.write(f'{subject_ID_value} already downloaded')
@@ -125,7 +134,7 @@ class StreamlitApp(ConnectToPACS):
 
                 # output_directory = self.output_dir + '/' + subject_ID_value
                 self.getscu(output_directory=output_directory, QueryRetrieveLevel=self.queryRetrieveLevel,
-                                subject_ID_element=self.subject_ID_element, subject_ID_value=subject_ID_value)
+                            subject_ID_element=self.subject_ID_element, subject_ID_value=subject_ID_value)
 
                 # User specified timelag between each subject
                 time.sleep(self.timelag)

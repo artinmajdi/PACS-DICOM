@@ -4,7 +4,6 @@ from pynetdicom import AE, sop_class
 import pydicom
 import subprocess
 
-from tqdm import tqdm
 
 class ConnectToPACS:
 
@@ -47,7 +46,8 @@ class ConnectToPACS:
         if subject_ID is None:
             subject_ID = dict(PatientID=None, StudyInstanceUID=None, SeriesInstanceUID=None)
 
-        assert queryRetrieveLevel in ['PATIENT', 'STUDY', 'SERIES', 'IMAGE'], "queryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
+        assert queryRetrieveLevel in ['PATIENT', 'STUDY', 'SERIES',
+                                      'IMAGE'], "queryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
 
         self.ds = pydicom.dataset.Dataset()
         self.ds.QueryRetrieveLevel = queryRetrieveLevel
@@ -110,7 +110,7 @@ class ConnectToPACS:
 
         os.makedirs(output_directory, exist_ok=True)
 
-        command = f'nohup python -m pynetdicom getscu --output-directory {output_directory} {self.addr} {self.port} -k QueryRetrieveLevel={QueryRetrieveLevel} -k {subject_ID_element}={subject_ID_value} | tee -a {output_directory}/{subject_ID_value}.log &'
+        command = f'python -m pynetdicom getscu --output-directory {output_directory} {self.addr} {self.port} -k QueryRetrieveLevel={QueryRetrieveLevel} -k {subject_ID_element}={subject_ID_value} > {output_directory}/{subject_ID_value}.log '  # | tee -a
         print(command)
 
         p = subprocess.Popen('exec ' + command, stdout=subprocess.PIPE, shell=True)
