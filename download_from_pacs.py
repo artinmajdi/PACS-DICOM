@@ -80,11 +80,10 @@ class DownloadFromPACS(ConnectToPACS):
 
     @staticmethod
     def extract_subject_path(df, output_dir):
-        user_inputs = {}
-        for subject_ID_value in df[df.columns[0]]:
-            user_inputs[subject_ID_value] = f'{output_dir}/{subject_ID_value}'
-
-        return user_inputs
+        return {
+            subject_ID_value: f'{output_dir}/{subject_ID_value}'
+            for subject_ID_value in df[df.columns[0]]
+        }
 
 
 if __name__ == '__main__':

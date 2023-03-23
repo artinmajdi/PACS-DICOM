@@ -28,9 +28,7 @@ class ConnectToPACS:
         assoc = ae.associate(self.addr, self.port)
 
         if assoc.is_established:
-            # Use the C-ECHO service to send the request
-            status = assoc.send_c_echo()
-            if status:
+            if status := assoc.send_c_echo():
                 # If the status is 'Success' then the verification succeeded
                 print('Verification successful')
             else:
@@ -46,8 +44,12 @@ class ConnectToPACS:
         if subject_ID is None:
             subject_ID = dict(PatientID=None, StudyInstanceUID=None, SeriesInstanceUID=None)
 
-        assert queryRetrieveLevel in ['PATIENT', 'STUDY', 'SERIES',
-                                      'IMAGE'], "queryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
+        assert queryRetrieveLevel in {
+            'PATIENT',
+            'STUDY',
+            'SERIES',
+            'IMAGE',
+        }, "queryRetrieveLevel must be one of 'PATIENT', 'STUDY', 'SERIES', 'IMAGE'"
 
         self.ds = pydicom.dataset.Dataset()
         self.ds.QueryRetrieveLevel = queryRetrieveLevel
@@ -56,13 +58,10 @@ class ConnectToPACS:
         if queryRetrieveLevel == 'PATIENT':
             self.ds.PatientID = subject_ID['PatientID']
 
-        # Unique key for STUDY level
-        elif queryRetrieveLevel == 'STUDY':
-            self.ds.StudyInstanceUID = subject_ID['StudyInstanceUID']
-
-        # Unique key for SERIES level
         elif queryRetrieveLevel == 'SERIES':
             self.ds.SeriesInstanceUID = subject_ID['SeriesInstanceUID']
+        elif queryRetrieveLevel == 'STUDY':
+            self.ds.StudyInstanceUID = subject_ID['StudyInstanceUID']
 
     def associate(self, requestedContext=sop_class.PatientRootQueryRetrieveInformationModelFind):
 
