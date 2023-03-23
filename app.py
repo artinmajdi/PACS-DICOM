@@ -84,11 +84,10 @@ class StreamlitApp(ConnectToPACS):
         :return: A dictionary with the subject ID as the key and the path to the subject's directory as
         the value.
         """
-        user_inputs = {}
-        for subject_ID_value in self.df_user_csv[self.df_user_csv.columns[0]]:
-            user_inputs[subject_ID_value] = f'{self.output_dir}/{subject_ID_value}'
-
-        return user_inputs
+        return {
+            subject_ID_value: f'{self.output_dir}/{subject_ID_value}'
+            for subject_ID_value in self.df_user_csv[self.df_user_csv.columns[0]]
+        }
 
     def _get_download_info(self, cols=None):
         """
